@@ -1,59 +1,52 @@
 "use client";
 
-import { openDB, type IDBPDatabase } from "idb";
 import type { Episode, Conversation, Deliverable, AgentTask, Message } from "./types";
 import type { AgentId } from "./agents";
 
-const DB_NAME = "mora-studio";
-const DB_VERSION = 1;
-
-type MoraDB = {
-  episodes: Episode;
-  conversations: Conversation;
-  deliverables: Deliverable;
-  tasks: AgentTask;
+// localStorage keys
+const KEYS = {
+  episodes: "mora_episodes",
+  deliverables: "mora_deliverables",
+  tasks: "mora_tasks",
+  conv: (agentId: string, episodeId: string) => `mora_conv_${agentId}_${episodeId}`,
 };
 
-let dbPromise: Promise<IDBPDatabase<MoraDB>> | null = null;
-
-function getDB() {
-  if (!dbPromise) {
-    dbPromise = openDB<MoraDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        const ep = db.createObjectStore("episodes", { keyPath: "id" });
-        ep.createIndex("createdAt", "createdAt");
-
-        const conv = db.createObjectStore("conversations", { keyPath: "id" });
-        conv.createIndex("episodeId", "episodeId");
-        conv.createIndex("agentId-episodeId", ["agentId", "episodeId"]);
-
-        const del = db.createObjectStore("deliverables", { keyPath: "id" });
-        del.createIndex("episodeId", "episodeId");
-        del.createIndex("agentId", "agentId");
-
-        const task = db.createObjectStore("tasks", { keyPath: "id" });
-        task.createIndex("agentId", "agentId");
-        task.createIndex("episodeId", "episodeId");
-      },
-    });
+function read<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
   }
-  return dbPromise;
+}
+
+function write(key: string, value: unknown): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // storage full — try to clear old conversations
+    console.warn("localStorage full");
+  }
 }
 
 // ── Episodes ──────────────────────────────────────────────
 export async function getAllEpisodes(): Promise<Episode[]> {
-  const db = await getDB();
-  return db.getAll("episodes");
+  return read<Episode[]>(KEYS.episodes, []);
 }
 
 export async function saveEpisode(episode: Episode): Promise<void> {
-  const db = await getDB();
-  await db.put("episodes", episode);
+  const all = read<Episode[]>(KEYS.episodes, []);
+  const idx = all.findIndex((e) => e.id === episode.id);
+  if (idx >= 0) all[idx] = episode;
+  else all.push(episode);
+  write(KEYS.episodes, all);
 }
 
 export async function deleteEpisode(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete("episodes", id);
+  const all = read<Episode[]>(KEYS.episodes, []);
+  write(KEYS.episodes, all.filter((e) => e.id !== id));
 }
 
 // ── Conversations ─────────────────────────────────────────
@@ -61,14 +54,11 @@ export async function getConversation(
   agentId: AgentId,
   episodeId: string
 ): Promise<Conversation | null> {
-  const db = await getDB();
-  const all = await db.getAllFromIndex("conversations", "agentId-episodeId", [agentId, episodeId]);
-  return all[0] ?? null;
+  return read<Conversation | null>(KEYS.conv(agentId, episodeId), null);
 }
 
 export async function saveConversation(conv: Conversation): Promise<void> {
-  const db = await getDB();
-  await db.put("conversations", conv);
+  write(KEYS.conv(conv.agentId, conv.episodeId), conv);
 }
 
 export async function appendMessage(
@@ -92,48 +82,55 @@ export async function appendMessage(
 
 // ── Deliverables ──────────────────────────────────────────
 export async function getAllDeliverables(): Promise<Deliverable[]> {
-  const db = await getDB();
-  return db.getAll("deliverables");
+  return read<Deliverable[]>(KEYS.deliverables, []);
 }
 
 export async function getDeliverablesByEpisode(episodeId: string): Promise<Deliverable[]> {
-  const db = await getDB();
-  return db.getAllFromIndex("deliverables", "episodeId", episodeId);
+  const all = read<Deliverable[]>(KEYS.deliverables, []);
+  return all.filter((d) => d.episodeId === episodeId);
 }
 
 export async function getDeliverablesByAgent(agentId: AgentId): Promise<Deliverable[]> {
-  const db = await getDB();
-  return db.getAllFromIndex("deliverables", "agentId", agentId);
+  const all = read<Deliverable[]>(KEYS.deliverables, []);
+  return all.filter((d) => d.agentId === agentId);
 }
 
 export async function saveDeliverable(d: Deliverable): Promise<void> {
-  const db = await getDB();
-  await db.put("deliverables", d);
+  const all = read<Deliverable[]>(KEYS.deliverables, []);
+  const idx = all.findIndex((x) => x.id === d.id);
+  if (idx >= 0) all[idx] = d;
+  else all.push(d);
+  write(KEYS.deliverables, all);
 }
 
 // ── Tasks ─────────────────────────────────────────────────
+export async function getAllTasks(): Promise<AgentTask[]> {
+  return read<AgentTask[]>(KEYS.tasks, []);
+}
+
 export async function getTasksForAgent(agentId: AgentId): Promise<AgentTask[]> {
-  const db = await getDB();
-  return db.getAllFromIndex("tasks", "agentId", agentId);
+  const all = read<AgentTask[]>(KEYS.tasks, []);
+  return all.filter((t) => t.agentId === agentId);
 }
 
 export async function saveTask(task: AgentTask): Promise<void> {
-  const db = await getDB();
-  await db.put("tasks", task);
+  const all = read<AgentTask[]>(KEYS.tasks, []);
+  const idx = all.findIndex((t) => t.id === task.id);
+  if (idx >= 0) all[idx] = task;
+  else all.push(task);
+  write(KEYS.tasks, all);
 }
 
 export async function markTaskRead(taskId: string): Promise<void> {
-  const db = await getDB();
-  const task = await db.get("tasks", taskId);
-  if (task) await db.put("tasks", { ...task, read: true });
+  const all = read<AgentTask[]>(KEYS.tasks, []);
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx >= 0) {
+    all[idx] = { ...all[idx], read: true };
+    write(KEYS.tasks, all);
+  }
 }
 
 export async function getUnreadTaskCount(agentId: AgentId): Promise<number> {
-  const tasks = await getTasksForAgent(agentId);
-  return tasks.filter((t) => !t.read).length;
-}
-
-export async function getAllTasks(): Promise<AgentTask[]> {
-  const db = await getDB();
-  return db.getAll("tasks");
+  const all = read<AgentTask[]>(KEYS.tasks, []);
+  return all.filter((t) => t.agentId === agentId && !t.read).length;
 }
