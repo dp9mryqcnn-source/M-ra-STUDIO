@@ -8,6 +8,7 @@ const KEYS = {
   episodes: "mora_episodes",
   deliverables: "mora_deliverables",
   tasks: "mora_tasks",
+  bible: "mora_bible",
   conv: (agentId: string, episodeId: string) => `mora_conv_${agentId}_${episodeId}`,
 };
 
@@ -133,4 +134,13 @@ export async function markTaskRead(taskId: string): Promise<void> {
 export async function getUnreadTaskCount(agentId: AgentId): Promise<number> {
   const all = read<AgentTask[]>(KEYS.tasks, []);
   return all.filter((t) => t.agentId === agentId && !t.read).length;
+}
+
+// ── Story Bible ───────────────────────────────────────────
+export function getBible(): string {
+  return read<string>(KEYS.bible, "");
+}
+
+export function saveBible(text: string): void {
+  write(KEYS.bible, text);
 }

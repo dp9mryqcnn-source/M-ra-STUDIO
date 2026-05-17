@@ -10,6 +10,7 @@ interface Props {
   agent: Agent;
   episode: Episode;
   initialMessages: Message[];
+  bible: string;
   pendingTask: AgentTask | null;
   onClose: () => void;
   onApprove: (deliverable: Omit<Deliverable, "id" | "approvedAt">) => void;
@@ -45,6 +46,7 @@ export default function AgentWorkspace({
   agent,
   episode,
   initialMessages,
+  bible,
   pendingTask,
   onClose,
   onApprove,
@@ -109,7 +111,7 @@ export default function AgentWorkspace({
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: agent.id, messages: history }),
+        body: JSON.stringify({ agentId: agent.id, messages: history, bible }),
       });
 
       if (!res.body) throw new Error("No stream");
