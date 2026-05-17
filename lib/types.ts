@@ -1,28 +1,47 @@
 import type { AgentId } from "./agents";
 
 export type MessageRole = "user" | "agent";
-export type DeliverableStatus = "pending" | "approved" | "revision";
 
 export interface Message {
   id: string;
   role: MessageRole;
   content: string;
-  timestamp: Date;
+  timestamp: number;
+}
+
+export interface Episode {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: number;
+  status: "in-progress" | "completed";
+}
+
+export interface Conversation {
+  id: string;
+  episodeId: string;
+  agentId: AgentId;
+  messages: Message[];
+  updatedAt: number;
 }
 
 export interface Deliverable {
   id: string;
+  episodeId: string;
+  episodeName: string;
   agentId: AgentId;
   agentName: string;
   agentEmoji: string;
   title: string;
   content: string;
-  approvedAt: Date;
+  approvedAt: number;
 }
 
-export interface Session {
+export interface AgentTask {
+  id: string;
+  episodeId: string;
   agentId: AgentId;
-  messages: Message[];
-  status: "idle" | "thinking" | "done";
-  lastDeliverable?: string;
+  taskContent: string;
+  createdAt: number;
+  read: boolean;
 }
