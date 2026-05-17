@@ -50,11 +50,14 @@ export default function AgentWorkspace({
   onApprove,
   onTaskRead,
 }: Props) {
+  const lastMsg = initialMessages[initialMessages.length - 1];
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [streamedText, setStreamedText] = useState("");
-  const [pendingApproval, setPendingApproval] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<string | null>(
+    lastMsg?.role === "agent" ? lastMsg.content : null
+  );
   const [approved, setApproved] = useState(false);
   const [taskDismissed, setTaskDismissed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
