@@ -1,5 +1,5 @@
-import StudioHome from "@/components/StudioHome";
+import TenderApp from "@/components/tender/TenderApp";
 
 export default function Page() {
-  return <StudioHome />;
+  return <TenderApp />;
 }

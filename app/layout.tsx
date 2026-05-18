@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Møra Studio",
-  description: "Studio de production — Série Møra",
+  title: "AppelPro — Appels d'offres",
+  description: "Outil de gestion et rédaction des appels d'offres publics — import/export poissons surgelés",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Møra Studio",
+    title: "AppelPro",
   },
 };
 
