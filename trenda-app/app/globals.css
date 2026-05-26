@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --tiktok-red: #fe2c55;
+  --tiktok-teal: #25f4ee;
+  --bg: #0a0a0f;
+  --card: #111118;
+  --border: #1e1e2e;
+  --muted: #5a5a72;
+  --text: #e8e8f0;
+}
+
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--tiktok-red), var(--tiktok-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot { animation: typing 1.2s ease infinite; display: inline-block; }
+.typing-dot:nth-child(2) { animation-delay: .15s; }
+.typing-dot:nth-child(3) { animation-delay: .3s; }
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(254,44,85,.3); }
+  50% { box-shadow: 0 0 28px rgba(37,244,238,.4); }
+}
+.icon-glow { animation: glow-pulse 2.5s ease infinite; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up .25s ease forwards; }
