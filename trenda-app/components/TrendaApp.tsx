@@ -244,16 +244,20 @@ TendancesPanel.displayName = "TendancesPanel";
 const ChatPanel = memo(({ msgs, streaming, onSend }: {
   msgs: Msg[]; streaming: boolean; onSend(text: string): void;
 }) => {
-  const [input, setInput] = useState("");
+  // Uncontrolled input — React ne touche jamais input.value, clavier iOS reste ouvert
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [hasText, setHasText] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || streaming) return;
-    onSend(input.trim());
-    setInput("");
+    const val = inputRef.current?.value.trim();
+    if (!val || streaming) return;
+    onSend(val);
+    if (inputRef.current) inputRef.current.value = "";
+    setHasText(false);
   };
 
   return (
@@ -315,16 +319,17 @@ const ChatPanel = memo(({ msgs, streaming, onSend }: {
       <div className="shrink-0 px-4 pt-2 pb-4" style={{ borderTop: "1px solid var(--border)", paddingBottom: "max(env(safe-area-inset-bottom,0px),16px)" }}>
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
+            ref={inputRef}
+            defaultValue=""
+            onInput={e => setHasText((e.currentTarget as HTMLInputElement).value.trim().length > 0)}
             placeholder="Demande à Trenda…"
             disabled={streaming}
             className="flex-1 px-4 py-3 rounded-2xl text-sm text-white outline-none"
             style={{ background: "var(--card)", border: "1px solid var(--border)" }}
           />
-          <button type="submit" disabled={!input.trim() || streaming}
+          <button type="submit" disabled={!hasText || streaming}
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-opacity"
-            style={{ background: input.trim() && !streaming ? "linear-gradient(135deg,#fe2c55,#ff6b6b)" : "var(--card)", opacity: !input.trim() || streaming ? .4 : 1 }}>
+            style={{ background: hasText && !streaming ? "linear-gradient(135deg,#fe2c55,#ff6b6b)" : "var(--card)", opacity: !hasText || streaming ? .4 : 1 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
@@ -465,15 +470,19 @@ export default function TrendaApp() {
         </div>
       </div>
 
-      {/* Contenu des onglets */}
-      <AnimatePresence mode="wait">
-        <motion.div key={tab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }} className="flex-1 flex flex-col overflow-hidden">
-          {tab === "tendances" && <TendancesPanel data={data} loading={loading} error={error} onReload={loadTrends} onChat={t => { send(t); }} />}
-          {tab === "chat"      && <ChatPanel msgs={msgs} streaming={streaming} onSend={send} />}
-          {tab === "planning"  && <PlanningPanel data={data} onReload={() => { setTab("tendances"); loadTrends(); }} onChat={t => { send(t); }} />}
-        </motion.div>
-      </AnimatePresence>
+      {/* Contenu des onglets — Chat sans AnimatePresence pour éviter toute perte de focus iOS */}
+      {tab === "chat"
+        ? <ChatPanel msgs={msgs} streaming={streaming} onSend={send} />
+        : (
+          <AnimatePresence mode="wait">
+            <motion.div key={tab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }} className="flex-1 flex flex-col overflow-hidden">
+              {tab === "tendances" && <TendancesPanel data={data} loading={loading} error={error} onReload={loadTrends} onChat={t => { send(t); }} />}
+              {tab === "planning"  && <PlanningPanel data={data} onReload={() => { setTab("tendances"); loadTrends(); }} onChat={t => { send(t); }} />}
+            </motion.div>
+          </AnimatePresence>
+        )
+      }
 
       {/* Modal niche */}
       <AnimatePresence>
