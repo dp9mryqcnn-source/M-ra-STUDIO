@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { AGENTS } from "@/lib/agents";
 import type { AgentId } from "@/lib/agents";
 import type { Deliverable, Episode, Message, AgentTask } from "@/lib/types";
@@ -25,6 +26,7 @@ function buildAgentTasks(episodeName: string, script: string): Partial<Record<Ag
 }
 
 export default function StudioHome() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
@@ -288,8 +290,26 @@ export default function StudioHome() {
           ))}
         </div>
 
+        {/* Trenda CTA */}
+        <button
+          onClick={() => router.push("/tiktok")}
+          className="mt-4 w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl active:scale-98 transition-transform"
+          style={{ background: "linear-gradient(135deg,#ff004418,#69c9d018)", border: "1px solid #ff004433" }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+            style={{ background: "linear-gradient(135deg,#ff0044,#69c9d0)", boxShadow: "0 0 12px rgba(255,0,68,.3)" }}>
+            📱
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-sm font-black text-white leading-tight">Trenda · Agent TikTok</p>
+            <p className="text-xs mt-0.5" style={{ color: "#6a6a82" }}>Tendances · Propositions de contenu · Planning</p>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff4466" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+
         {/* Workflow */}
-        <div className="mt-5 px-4 py-3 rounded-2xl" style={{ background: "#13131a", border: "1px solid #1a1a28" }}>
+        <div className="mt-4 px-4 py-3 rounded-2xl" style={{ background: "#13131a", border: "1px solid #1a1a28" }}>
           <p className="text-xs font-bold text-white mb-2">🎬 Workflow Møra</p>
           <div className="space-y-1.5">
             {[
