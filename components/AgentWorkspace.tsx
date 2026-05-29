@@ -5,6 +5,7 @@ import type { Agent } from "@/lib/agents";
 import type { Deliverable, Episode, AgentTask, Message } from "@/lib/types";
 import * as db from "@/lib/db";
 import TypingIndicator from "./TypingIndicator";
+import ArtiaImagePanel from "./ArtiaImagePanel";
 
 interface Props {
   agent: Agent;
@@ -15,6 +16,26 @@ interface Props {
   onClose: () => void;
   onApprove: (deliverable: Omit<Deliverable, "id" | "approvedAt">) => void;
   onTaskRead: (taskId: string) => void;
+}
+
+function extractLeonardoPrompts(text: string): { scene: string; prompt: string; negative: string }[] {
+  const results: { scene: string; prompt: string; negative: string }[] = [];
+  // Cherche les blocs PROMPT LEONARDO avec leur négatif
+  const blocks = text.split(/🖼️/);
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const promptMatch = block.match(/PROMPT LEONARDO[^:]*:\s*\n?([\s\S]+?)(?=❌|🎬|🎨|🖼️|$)/i);
+    const negMatch = block.match(/❌[^:]*:\s*\n?([\s\S]+?)(?=🎬|🎨|🖼️|$)/i);
+    const sceneMatch = block.match(/SCÈNE?\s*\d+[^—\n]*|SCENE\s*\d+[^—\n]*/i);
+    if (promptMatch?.[1]?.trim()) {
+      results.push({
+        scene: sceneMatch?.[0]?.trim() ?? `Visuel ${i}`,
+        prompt: promptMatch[1].trim().replace(/^["']|["']$/g, ""),
+        negative: negMatch?.[1]?.trim() ?? "",
+      });
+    }
+  }
+  return results;
 }
 
 function renderContent(text: string) {
@@ -288,6 +309,22 @@ export default function AgentWorkspace({
                 {new Date(msg.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
+
+            {/* Artia — panels de génération Leonardo */}
+            {msg.role === "agent" && agent.id === "artia" && (
+              <div className="w-full mt-1 ml-10 space-y-2">
+                {extractLeonardoPrompts(msg.content).map((p, i) => (
+                  <ArtiaImagePanel
+                    key={i}
+                    sceneLabel={p.scene}
+                    prompt={p.prompt}
+                    negativePrompt={p.negative}
+                    borderColor={agent.borderColor}
+                    glowColor={agent.glowColor}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
