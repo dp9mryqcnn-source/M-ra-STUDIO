@@ -120,3 +120,27 @@ export function resolveLexCorrection(id: string, approved: boolean): void {
 // ── Story Bible ───────────────────────────────────────────
 export function getBible(): string { return read<string>(KEYS.bible, ""); }
 export function saveBible(text: string): void { write(KEYS.bible, text); }
+
+// ── Backup / Restore ──────────────────────────────────────
+export function exportAllData(): string {
+  if (typeof window === "undefined") return "{}";
+  const snapshot: Record<string, unknown> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("mora_")) {
+      try { snapshot[key] = JSON.parse(localStorage.getItem(key)!); }
+      catch { snapshot[key] = localStorage.getItem(key); }
+    }
+  }
+  return JSON.stringify(snapshot, null, 2);
+}
+
+export function importAllData(json: string): void {
+  if (typeof window === "undefined") return;
+  const snapshot = JSON.parse(json) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (key.startsWith("mora_")) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  }
+}

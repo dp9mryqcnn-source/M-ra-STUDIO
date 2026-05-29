@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { Episode } from "@/lib/types";
+import { exportAllData, importAllData } from "@/lib/db";
 
 interface Props {
   episodes: Episode[];
@@ -13,6 +14,35 @@ export default function EpisodeSelector({ episodes, onSelect, onCreate }: Props)
   const [creating, setCreating] = useState(episodes.length === 0);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const data = exportAllData();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mora-studio-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        importAllData(ev.target?.result as string);
+        window.location.reload();
+      } catch {
+        alert("Fichier invalide. Choisis un fichier de sauvegarde MØRA.");
+      }
+    };
+    reader.readAsText(file);
+    setRestoring(false);
+  };
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -169,6 +199,37 @@ export default function EpisodeSelector({ episodes, onSelect, onCreate }: Props)
             </p>
           </div>
         )}
+
+        {/* Backup / Restore */}
+        <div className="mt-6 rounded-2xl p-4" style={{ background: "#13131a", border: "1px solid #1a1a28" }}>
+          <p className="text-xs font-bold text-white mb-3">💾 Sauvegarde des données</p>
+          <p className="text-xs mb-3" style={{ color: "#5a5a72" }}>
+            Exporte toutes tes scènes, conversations et livrables en fichier JSON. Restaure-les si tu dois réinstaller l&apos;app.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+              style={{ background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}
+            >
+              <span>⬇️</span> Sauvegarder
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+              style={{ background: "#10b98122", color: "#34d399", border: "1px solid #10b98144" }}
+            >
+              <span>⬆️</span> Restaurer
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImport}
+          />
+        </div>
 
         <div style={{ height: "max(env(safe-area-inset-bottom,0px),20px)" }} />
       </div>
