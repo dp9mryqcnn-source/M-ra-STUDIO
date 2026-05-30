@@ -100,6 +100,26 @@ export function updateLastMessage(chapterId: string, content: string): void {
   setMessages(chapterId, all);
 }
 
+// ── Photos personnalisées des agents (Plume / Margaux) ────
+// Stockées en data-URL dans localStorage : la photo choisie sur le
+// téléphone devient l'avatar, sans aucune manipulation de fichiers.
+const avatarKey = (agentId: string) => `mlb_avatar_${agentId}`;
+
+export function getAvatarImage(agentId: string): string | null {
+  return read<string | null>(avatarKey(agentId), null);
+}
+export function setAvatarImage(agentId: string, dataUrl: string): void {
+  write(avatarKey(agentId), dataUrl);
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("mlb-avatar-changed", { detail: agentId }));
+}
+export function clearAvatarImage(agentId: string): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(avatarKey(agentId));
+    window.dispatchEvent(new CustomEvent("mlb-avatar-changed", { detail: agentId }));
+  }
+}
+
 // ── Sauvegarde / Restauration globale ─────────────────────
 export function exportAllData(): string {
   if (typeof window === "undefined") return "{}";

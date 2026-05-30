@@ -15,6 +15,9 @@ import {
   saveBook,
   saveChapter,
   updateLastMessage,
+  setAvatarImage,
+  clearAvatarImage,
+  getAvatarImage,
 } from "@/lib/mlb/db";
 import { buildChapterPdf, saveOrSharePdf } from "@/lib/mlb/pdf";
 
@@ -30,6 +33,32 @@ const C = {
 
 const uid = () =>
   typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+
+// Redimensionne la photo choisie (pour tenir dans le stockage du téléphone)
+function fileToScaledDataUrl(file: File, max = 480, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // ── Construit les messages API du point de vue d'un agent ──
 function buildApiMessages(thread: MlbMessage[], target: MlbAgentId) {
@@ -204,22 +233,7 @@ function HomeView({
       {/* Les deux agents */}
       <section className="px-5 grid grid-cols-2 gap-3 mt-1">
         {MLB_AGENTS.map((a) => (
-          <div
-            key={a.id}
-            className="rounded-3xl p-4 flex flex-col items-center text-center shadow-sm"
-            style={{ background: a.bubble, border: `1.5px solid ${a.accent}55` }}
-          >
-            <Avatar agent={a.id} size={78} />
-            <h3 style={{ color: C.ink }} className="font-bold text-lg mt-2">
-              {a.emoji} {a.name}
-            </h3>
-            <p style={{ color: a.accent }} className="text-xs font-semibold">
-              {a.shortRole}
-            </p>
-            <p style={{ color: C.taupe }} className="text-[11px] mt-1 leading-snug italic">
-              {a.tagline}
-            </p>
-          </div>
+          <AgentCardHome key={a.id} agentId={a.id} emoji={a.emoji} name={a.name} shortRole={a.shortRole} tagline={a.tagline} bubble={a.bubble} accent={a.accent} />
         ))}
       </section>
 
@@ -971,6 +985,83 @@ function TopBar({
       </div>
       {right}
     </header>
+  );
+}
+
+// Carte d'un agent sur l'accueil, avec sélecteur de photo personnalisée
+function AgentCardHome({
+  agentId,
+  emoji,
+  name,
+  shortRole,
+  tagline,
+  bubble,
+  accent,
+}: {
+  agentId: MlbAgentId;
+  emoji: string;
+  name: string;
+  shortRole: string;
+  tagline: string;
+  bubble: string;
+  accent: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [hasCustom, setHasCustom] = useState(false);
+
+  useEffect(() => {
+    setHasCustom(!!getAvatarImage(agentId));
+  }, [agentId]);
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await fileToScaledDataUrl(file);
+      setAvatarImage(agentId, url);
+      setHasCustom(true);
+    } catch {
+      alert("Impossible de lire cette image. Essayez une autre photo. 🌸");
+    }
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  return (
+    <div
+      className="rounded-3xl p-4 flex flex-col items-center text-center shadow-sm"
+      style={{ background: bubble, border: `1.5px solid ${accent}55` }}
+    >
+      <Avatar agent={agentId} size={78} />
+      <h3 style={{ color: C.ink }} className="font-bold text-lg mt-2">
+        {emoji} {name}
+      </h3>
+      <p style={{ color: accent }} className="text-xs font-semibold">
+        {shortRole}
+      </p>
+      <p style={{ color: C.taupe }} className="text-[11px] mt-1 leading-snug italic">
+        {tagline}
+      </p>
+      <button
+        onClick={() => fileRef.current?.click()}
+        style={{ background: "#ffffffcc", color: C.ink, border: `1px solid ${accent}66` }}
+        className="text-[11px] font-semibold mt-2 px-3 py-1.5 rounded-full active:scale-95 transition"
+      >
+        📷 {hasCustom ? "Changer la photo" : "Choisir ma photo"}
+      </button>
+      {hasCustom && (
+        <button
+          onClick={() => {
+            clearAvatarImage(agentId);
+            setHasCustom(false);
+          }}
+          style={{ color: C.taupe }}
+          className="text-[10px] mt-1 underline active:opacity-60"
+        >
+          Revenir au dessin
+        </button>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+    </div>
   );
 }
 

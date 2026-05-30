@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MlbAgentId } from "@/lib/mlb/types";
+import { getAvatarImage } from "@/lib/mlb/db";
 
 // ── Vraies images (optionnelles) ──────────────────────────
 // Déposez vos illustrations dans le dossier /public et l'app les utilisera
@@ -101,21 +102,38 @@ export default function Avatar({
   talking?: boolean;
 }) {
   const [srcIdx, setSrcIdx] = useState(0);
+  const [custom, setCustom] = useState<string | null>(null);
   const isPlume = agent === "plume";
   const motionClass = !animated ? "" : talking ? "mlb-talk" : "mlb-float";
   const candidates = CANDIDATES[agent];
 
-  // Si une vraie image existe dans /public, on l'utilise (on essaie chaque format).
-  if (srcIdx < candidates.length) {
+  // Photo personnalisée choisie dans l'app (priorité absolue)
+  useEffect(() => {
+    const refresh = () => setCustom(getAvatarImage(agent));
+    refresh();
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || detail === agent) refresh();
+    };
+    window.addEventListener("mlb-avatar-changed", handler);
+    return () => window.removeEventListener("mlb-avatar-changed", handler);
+  }, [agent]);
+
+  // Source affichée : 1) photo perso  2) image /public  3) dessin
+  const imgSrc = custom ?? (srcIdx < candidates.length ? candidates[srcIdx] : null);
+
+  if (imgSrc) {
     return (
       <div className={motionClass} style={{ width: size, height: size, display: "block" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={candidates[srcIdx]}
+          src={imgSrc}
           alt={isPlume ? "Plume" : "Margaux"}
+          onError={() => {
+            if (!custom) setSrcIdx((i) => i + 1);
+          }}
           width={size}
           height={size}
-          onError={() => setSrcIdx((i) => i + 1)}
           style={{
             width: size,
             height: size,
