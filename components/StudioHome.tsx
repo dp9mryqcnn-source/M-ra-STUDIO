@@ -22,7 +22,8 @@ function buildSceneTasks(episodeName: string, sceneTitle: string, sceneContent: 
     compta: `${ctx}\n\nLivre MAINTENANT le budget estimé pour produire cette scène (tableau avec outils et coûts).`,
     lex: `${ctx}\n\nAnalyse MAINTENANT cette scène sur le plan juridique. Si des mots doivent être corrigés, inclus le bloc CORRECTIONS_LEX:[...] à la fin.`,
     sono: `${ctx}\n\nCompose MAINTENANT les prompts Suno AI pour cette scène. Prompts en anglais, avec instructions d'intégration CapCut.`,
-    maxi: `${ctx}\n\nTu recevras bientôt les travaux des autres agents. Dès que tu es prêt, crée LE prompt Runway ultime pour cette scène.`,
+    maxi: `${ctx}\n\nExtrais LE moment viral de 15-30 secondes de cette scène (celui qui laisse une question sans réponse) et crée le prompt Runway AI ultime pour CE clip précis — pas toute la scène.`,
+    livia: `${ctx}\n\nPour cette scène :\n1. Écris le chapitre de roman complet et immersif (prose narrative, monologues intérieurs, descriptions atmosphériques, cliffhanger en fin)\n2. Propose 3 concepts de couverture avec prompts Leonardo AI\n3. Donne la fiche Amazon KDP complète prête à coller`,
   };
 }
 
@@ -299,7 +300,7 @@ export default function StudioHome() {
 
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(#7c3aed,#ec4899)" }} />
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#5a5a72" }}>9 agents · Scène par scène</p>
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#5a5a72" }}>10 agents · Scène par scène</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -317,8 +318,9 @@ export default function StudioHome() {
               { n: "2", t: "Scéna écrit la Scène 1 → tu valides", c: "#f59e0b" },
               { n: "3", t: "Tous les agents travaillent sur la Scène 1", c: "#8b5cf6" },
               { n: "4", t: "Lex corrige auto si besoin → ton aval", c: "#dc2626" },
-              { n: "5", t: "Maxi 🚀 crée le prompt Runway final", c: "#f43f5e" },
-              { n: "6", t: "Répète pour Scène 2, 3…", c: "#06b6d4" },
+              { n: "5", t: "Maxi 🚀 extrait le clip viral 15-30s", c: "#f43f5e" },
+              { n: "6", t: "Livia 📚 écrit le chapitre roman + KDP", c: "#34d399" },
+              { n: "7", t: "Répète pour Scène 2, 3…", c: "#06b6d4" },
             ].map((s) => (
               <div key={s.n} className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
