@@ -4,13 +4,18 @@ import { useState } from "react";
 import type { MlbAgentId } from "@/lib/mlb/types";
 
 // ── Vraies images (optionnelles) ──────────────────────────
-// Déposez vos illustrations dans /public et l'app les utilisera
-// automatiquement à la place du dessin :
-//   public/plume.png   → le personnage Plume (la ghostwriter)
-//   public/margaux.png → le personnage Margaux (l'éditrice)
-const AVATAR_IMG: Record<MlbAgentId, string> = {
-  plume: "/plume.png",
-  margaux: "/margaux.png",
+// Déposez vos illustrations dans le dossier /public et l'app les utilisera
+// automatiquement à la place du dessin. Noms acceptés (peu importe le format) :
+//   public/plume.png / .jpg / .jpeg / .webp     → Plume (la ghostwriter)
+//   public/margaux.png / .jpg / .jpeg / .webp   → Margaux (l'éditrice)
+const CANDIDATES: Record<MlbAgentId, string[]> = {
+  plume: ["/plume.png", "/plume.jpg", "/plume.jpeg", "/plume.webp"],
+  margaux: ["/margaux.png", "/margaux.jpg", "/margaux.jpeg", "/margaux.webp"],
+};
+// Cadrage du cercle sur le visage de chaque personnage
+const FOCUS: Record<MlbAgentId, string> = {
+  plume: "50% 24%",
+  margaux: "50% 16%",
 };
 
 const SKIN = "#C68A5E";
@@ -95,22 +100,32 @@ export default function Avatar({
   animated?: boolean;
   talking?: boolean;
 }) {
-  const [imgError, setImgError] = useState(false);
+  const [srcIdx, setSrcIdx] = useState(0);
   const isPlume = agent === "plume";
   const motionClass = !animated ? "" : talking ? "mlb-talk" : "mlb-float";
+  const candidates = CANDIDATES[agent];
 
-  // Si une vraie image existe dans /public, on l'utilise.
-  if (!imgError) {
+  // Si une vraie image existe dans /public, on l'utilise (on essaie chaque format).
+  if (srcIdx < candidates.length) {
     return (
       <div className={motionClass} style={{ width: size, height: size, display: "block" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={AVATAR_IMG[agent]}
+          src={candidates[srcIdx]}
           alt={isPlume ? "Plume" : "Margaux"}
           width={size}
           height={size}
-          onError={() => setImgError(true)}
-          style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", border: "2px solid #ffffffcc" }}
+          onError={() => setSrcIdx((i) => i + 1)}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            objectFit: "cover",
+            objectPosition: FOCUS[agent],
+            display: "block",
+            border: "2px solid #ffffffdd",
+            boxShadow: "0 2px 8px rgba(142,126,115,0.25)",
+          }}
         />
       </div>
     );
