@@ -1,24 +1,19 @@
 {
-  "name": "M-ra STUDIO",
-  "short_name": "M-ra",
-  "description": "Studio d'agents IA — travaillez avec vos agents, approuvez leurs créations",
-  "start_url": "/",
+  "name": "Le Monde de MLB",
+  "short_name": "MLB",
+  "description": "Studio d'écriture — Plume réécrit vos idées, Margaux les édite. Votre livre, à deux plumes complices.",
+  "start_url": "/mlb",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#7c3aed",
+  "background_color": "#F9F6F1",
+  "theme_color": "#D6BD9F",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "src": "/mlb-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
