@@ -78,6 +78,32 @@ export default function EpisodeSelector({ episodes, onSelect, onCreate }: Props)
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
+        {/* Accès au studio d'écriture pastel — Le Monde de MLB */}
+        <a
+          href="/mlb"
+          className="flex items-center gap-3 rounded-2xl p-4 mb-4 active:scale-98 transition-transform"
+          style={{
+            background: "linear-gradient(135deg,#F6E7E1,#D6BD9F)",
+            boxShadow: "0 4px 18px rgba(214,189,159,.35)",
+          }}
+        >
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ background: "#ffffffaa" }}
+          >
+            <span className="text-xl">🪶</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-base" style={{ color: "#4A403A", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+              Le Monde de MLB
+            </p>
+            <p className="text-xs" style={{ color: "#8E7E73" }}>
+              Studio d&apos;écriture — Plume &amp; Margaux écrivent votre livre
+            </p>
+          </div>
+          <span className="text-lg shrink-0" style={{ color: "#8E7E73" }}>→</span>
+        </a>
+
         {/* Create form */}
         {creating ? (
           <div

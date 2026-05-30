@@ -281,6 +281,21 @@ export default function StudioHome() {
 
       {/* AGENTS GRID */}
       <div className="flex-1 overflow-y-auto scrollbar-hide px-4 py-3">
+        {/* Accès au studio d'écriture pastel — Le Monde de MLB */}
+        <a
+          href="/mlb"
+          className="flex items-center gap-3 rounded-2xl p-3 mb-3 active:scale-98 transition-transform"
+          style={{ background: "linear-gradient(135deg,#F6E7E1,#D6BD9F)", boxShadow: "0 4px 16px rgba(214,189,159,.3)" }}
+        >
+          <span className="text-lg shrink-0">🪶</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm" style={{ color: "#4A403A", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+              Le Monde de MLB
+            </p>
+            <p className="text-xs" style={{ color: "#8E7E73" }}>Plume &amp; Margaux écrivent votre livre →</p>
+          </div>
+        </a>
+
         {/* Scenes pills */}
         {scenes.length > 0 && (
           <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
