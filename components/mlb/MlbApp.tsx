@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
+import DuoScene, { type Flow } from "./DuoScene";
 import { MLB_AGENTS, getMlbAgent } from "@/lib/mlb/agents";
 import type { MlbAgentId, MlbBook, MlbChapter, MlbMessage } from "@/lib/mlb/types";
 import {
@@ -440,6 +441,7 @@ function ChapterAtelier({
   const [activeAgent, setActiveAgent] = useState<MlbAgentId>("plume");
   const [thinkingAgent, setThinkingAgent] = useState<MlbAgentId | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [flow, setFlow] = useState<Flow>("idle");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MlbMessage[]>(messages);
@@ -556,8 +558,10 @@ function ChapterAtelier({
       return;
     }
     setBusy(true);
+    setFlow("to-margaux");
     setActiveAgent("margaux");
     await runAgent("margaux", "📨 Margaux, voici le dernier texte écrit par Plume. Fais ta relecture d'éditrice complète et laisse-lui des notes précises.");
+    setFlow("idle");
     setBusy(false);
   };
 
@@ -568,14 +572,17 @@ function ChapterAtelier({
       return;
     }
     setBusy(true);
+    setFlow("to-plume");
     setActiveAgent("plume");
     await runAgent("plume", "📨 Plume, voici les notes de Margaux. Applique-les et propose-moi la version révisée du chapitre.");
+    setFlow("idle");
     setBusy(false);
   };
 
   const collaborate = async () => {
     if (busy) return;
     setBusy(true);
+    setFlow("collab");
     const needDraft = !lastOf("plume") || messagesRef.current[messagesRef.current.length - 1]?.author !== "plume";
     if (needDraft && (chapter.idea || ideaRef.current?.value.trim())) {
       const idea = chapter.idea || ideaRef.current!.value.trim();
@@ -587,6 +594,7 @@ function ChapterAtelier({
     await runAgent("margaux", "📨 Margaux, fais ta relecture d'éditrice du dernier texte de Plume et laisse-lui des notes précises.");
     setActiveAgent("plume");
     await runAgent("plume", "📨 Plume, applique les notes de Margaux et propose la version révisée.");
+    setFlow("idle");
     setBusy(false);
   };
 
@@ -675,6 +683,13 @@ function ChapterAtelier({
         </div>
       )}
 
+      {/* Scène vivante : Plume & Margaux qui interagissent */}
+      {hasIdea && (
+        <div className="px-4 pt-3">
+          <DuoScene active={thinkingAgent ?? activeAgent} busy={busy} flow={flow} />
+        </div>
+      )}
+
       {/* Fil de conversation */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-3">
         {messages.map((m) => (
@@ -713,7 +728,7 @@ function ChapterAtelier({
                   border: `1.5px solid ${activeAgent === a.id ? a.accent : C.silver + "55"}`,
                 }}
               >
-                <Avatar agent={a.id} size={20} />
+                <Avatar agent={a.id} size={20} animated={false} />
                 Parler à {a.name}
               </button>
             ))}
@@ -882,7 +897,7 @@ function MessageBubble({ message, onSetFinal }: { message: MlbMessage; onSetFina
   return (
     <div className="flex items-start gap-2 animate-fade-in">
       <div className="shrink-0 mt-1">
-        <Avatar agent={agent.id} size={34} />
+        <Avatar agent={agent.id} size={34} animated={false} />
       </div>
       <div className="max-w-[85%]">
         <p style={{ color: agent.accent }} className="text-xs font-bold mb-0.5 ml-1">
@@ -912,7 +927,7 @@ function Thinking({ agent }: { agent: MlbAgentId }) {
   const a = getMlbAgent(agent);
   return (
     <div className="flex items-center gap-2">
-      <Avatar agent={agent} size={34} />
+      <Avatar agent={agent} size={34} talking />
       <div className="px-4 py-3 rounded-3xl rounded-tl-md flex items-center gap-1.5" style={{ background: a.bubble }}>
         <span style={{ color: C.taupe }} className="text-xs italic mr-1">
           {a.name} écrit

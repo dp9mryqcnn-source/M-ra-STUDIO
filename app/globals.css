@@ -95,3 +95,51 @@ body {
 
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+/* ── Le Monde de MLB — vie & interaction des personnages ── */
+@keyframes mlb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes mlb-talk {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-2deg); }
+  75% { transform: translateY(-3px) rotate(2deg); }
+}
+@keyframes mlb-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+@keyframes mlb-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes mlb-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes mlb-handoff {
+  0% { transform: translateX(-10px); opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { transform: translateX(10px); opacity: 0.2; }
+}
+@keyframes mlb-handoff-back {
+  0% { transform: translateX(10px); opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { transform: translateX(-10px); opacity: 0.2; }
+}
+@keyframes mlb-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.mlb-float { animation: mlb-float 3.4s ease-in-out infinite; }
+.mlb-talk { animation: mlb-talk 0.6s ease-in-out infinite; }
+.mlb-eyes { transform-box: fill-box; transform-origin: center; animation: mlb-blink 4.8s infinite; }
+.mlb-sway { transform-box: fill-box; transform-origin: bottom center; animation: mlb-sway 2.6s ease-in-out infinite; }
+.mlb-sparkle { transform-box: fill-box; transform-origin: center; animation: mlb-sparkle 1.8s ease-in-out infinite; }
+.mlb-handoff { animation: mlb-handoff 1.4s ease-in-out infinite; }
+.mlb-handoff-back { animation: mlb-handoff-back 1.4s ease-in-out infinite; }
+.mlb-pop { animation: mlb-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
