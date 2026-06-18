@@ -46,7 +46,7 @@ function paintBackground(doc: Doc) {
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 }
 
-function drawHeader(doc: Doc, subtitle: string) {
+function drawHeader(doc: Doc, title: string, subtitle: string) {
   doc.setFillColor(...GOLD);
   doc.rect(0, 0, PAGE_W, 26, "F");
   doc.setFillColor(...BLUSH);
@@ -54,11 +54,13 @@ function drawHeader(doc: Doc, subtitle: string) {
   doc.setFont("times", "bolditalic");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("Le Monde de MLB", MARGIN, 16);
-  doc.setFont("times", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(...INK);
-  doc.text(subtitle, MARGIN, 22);
+  doc.text(title || "Mon livre", MARGIN, subtitle ? 16 : 18);
+  if (subtitle) {
+    doc.setFont("times", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(...INK);
+    doc.text(subtitle, MARGIN, 22);
+  }
 }
 
 function drawFooter(doc: Doc, page: number, bookTitle: string) {
@@ -84,7 +86,7 @@ export async function buildChapterPdf(
   const doc = new JsPDF({ unit: "mm", format: "a4" });
 
   paintBackground(doc);
-  drawHeader(doc, book.title + (book.subtitle ? ` — ${book.subtitle}` : ""));
+  drawHeader(doc, book.title, book.subtitle || "");
   drawFooter(doc, 1, book.title);
 
   let y = 46;
@@ -117,7 +119,7 @@ export async function buildChapterPdf(
   if (withConversation && messages.length > 0) {
     doc.addPage();
     paintBackground(doc);
-    drawHeader(doc, "Atelier — l'échange complet");
+    drawHeader(doc, book.title, "L'atelier — Plume & Margaux");
     let yy = 46;
     doc.setFont("times", "bolditalic");
     doc.setFontSize(16);
@@ -129,7 +131,7 @@ export async function buildChapterPdf(
       if (yy > PAGE_H - 40) {
         doc.addPage();
         paintBackground(doc);
-        drawHeader(doc, "Atelier — l'échange complet");
+        drawHeader(doc, book.title, "L'atelier — Plume & Margaux");
         yy = 46;
       }
       const label =
