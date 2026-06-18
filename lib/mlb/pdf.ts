@@ -62,15 +62,12 @@ function drawHeader(doc: Doc, subtitle: string) {
 }
 
 function drawFooter(doc: Doc, page: number, bookTitle: string) {
+  void page;
   doc.setFont("times", "italic");
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setTextColor(...TAUPE);
-  doc.text(
-    `${bookTitle} — Le Monde de MLB — page ${page} — ${new Date().toLocaleDateString("fr-FR")}`,
-    PAGE_W / 2,
-    PAGE_H - 10,
-    { align: "center" }
-  );
+  // Bas de page : uniquement le nom du livre
+  doc.text(bookTitle, PAGE_W / 2, PAGE_H - 10, { align: "center" });
 }
 
 /**

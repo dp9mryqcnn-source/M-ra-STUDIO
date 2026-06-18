@@ -60,6 +60,27 @@ function fileToScaledDataUrl(file: File, max = 480, quality = 0.85): Promise<str
   });
 }
 
+// Nettoie le texte d'un agent pour ne garder QUE la prose du chapitre :
+// retire les en-têtes « VERSION / CORRECTIONS / SUGGESTION / NOTES », les
+// petites phrases d'introduction adressées à l'autrice, et les tirets parasites.
+function cleanProse(text: string): string {
+  if (!text) return "";
+  const metaStart =
+    /^\s*(✍️|🔍|💡|📖|⭐|🏗️|🎭|🖋️|✅|📝|💎|🪶|📨|🌸|VERSION\b|CORRECTIONS\b|MA SUGGESTION|RAPPORT D|NOTES POUR|IMPRESSION|STRUCTURE|PERSONNAGES|STYLE|EN PLUS)/u;
+  const rule = /^[\s—–\-*_=·•]+$/; // lignes de séparation « — », « *** », etc.
+  let lines = text.split("\n");
+  lines = lines.filter((l) => !rule.test(l) && !metaStart.test(l.trim()));
+  let out = lines.join("\n");
+  // Retire une intro bavarde du type « Parfait Marie-Laure ! Voici le chapitre… »
+  out = out.replace(
+    /^\s*(parfait|bien sûr|avec plaisir|voici|super|génial|d'accord|ok|c'est noté|très bien)[^\n]*?(marie[- ]?laure|chapitre|voici)[^\n]*\n+/i,
+    ""
+  );
+  out = out.replace(/^\s*(voici (le|ce|ton|votre)[^\n]*:)\s*\n+/i, "");
+  out = out.replace(/\n{3,}/g, "\n\n").trim();
+  return out;
+}
+
 // ── Construit les messages API du point de vue d'un agent ──
 function buildApiMessages(thread: MlbMessage[], target: MlbAgentId) {
   const mapped = thread
@@ -456,6 +477,8 @@ function ChapterAtelier({
   const [thinkingAgent, setThinkingAgent] = useState<MlbAgentId | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [flow, setFlow] = useState<Flow>("idle");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorSeed, setEditorSeed] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MlbMessage[]>(messages);
@@ -612,26 +635,36 @@ function ChapterAtelier({
     setBusy(false);
   };
 
-  const setAsFinal = (content: string) => {
-    touchChapter({ finalText: content });
-    alert("✅ Texte enregistré comme version du chapitre. Vous pouvez générer le PDF.");
+  // Ouvre l'éditeur : depuis un message (nettoyé) ou depuis le texte final déjà enregistré
+  const openEditorFromMessage = (content: string) => {
+    setEditorSeed(cleanProse(content));
+    setEditorOpen(true);
+  };
+  const openEditorForExport = () => {
+    const seed = chapter.finalText.trim()
+      ? chapter.finalText
+      : cleanProse(lastOf("plume")?.content || chapter.idea || "");
+    setEditorSeed(seed);
+    setEditorOpen(true);
   };
 
-  const exportPdf = async (withConversation: boolean) => {
-    let finalText = chapter.finalText;
-    if (!finalText.trim()) {
-      const p = lastOf("plume");
-      finalText = p?.content || chapter.idea;
-      if (p) touchChapter({ finalText: p.content });
-    }
-    const { blob, filename } = await buildChapterPdf(
-      { ...book },
-      { ...chapter, finalText },
-      messagesRef.current,
-      withConversation
-    );
+  // Export depuis l'éditeur : on enregistre le texte revu, puis on génère le PDF propre
+  const exportFromEditor = async (text: string, title: string) => {
+    const next = { ...chapter, finalText: text, title, updatedAt: Date.now() };
+    onChapterChange(next);
+    const { blob, filename } = await buildChapterPdf({ ...book }, next, messagesRef.current, false);
     const r = await saveOrSharePdf(blob, filename);
-    if (r === "downloaded") alert("📄 PDF téléchargé dans vos fichiers.");
+    setEditorOpen(false);
+    if (r === "downloaded") alert("📄 PDF enregistré dans vos fichiers.");
+  };
+
+  // PDF complet (avec l'atelier) — accès via le menu, sans passer par l'éditeur
+  const exportFull = async () => {
+    let finalText = chapter.finalText;
+    if (!finalText.trim()) finalText = cleanProse(lastOf("plume")?.content || chapter.idea);
+    const { blob, filename } = await buildChapterPdf({ ...book }, { ...chapter, finalText }, messagesRef.current, true);
+    const r = await saveOrSharePdf(blob, filename);
+    if (r === "downloaded") alert("📄 PDF complet enregistré dans vos fichiers.");
   };
 
   const hasIdea = chapter.idea.trim().length > 0 || messages.length > 0;
@@ -660,7 +693,22 @@ function ChapterAtelier({
           onClose={() => setMenuOpen(false)}
           onSetTitle={(t) => touchChapter({ title: t })}
           onStatus={(s) => touchChapter({ status: s })}
-          onExport={exportPdf}
+          onPrepare={openEditorForExport}
+          onExportFull={exportFull}
+        />
+      )}
+
+      {editorOpen && (
+        <ChapterEditor
+          chapterNumber={chapter.number}
+          initialTitle={chapter.title}
+          initialText={editorSeed}
+          onClose={() => setEditorOpen(false)}
+          onExport={exportFromEditor}
+          onSaveText={(text, title) => {
+            onChapterChange({ ...chapter, finalText: text, title, updatedAt: Date.now() });
+            setEditorOpen(false);
+          }}
         />
       )}
 
@@ -707,7 +755,7 @@ function ChapterAtelier({
       {/* Fil de conversation */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-3">
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} onSetFinal={setAsFinal} />
+          <MessageBubble key={m.id} message={m} onSetFinal={openEditorFromMessage} />
         ))}
         {thinkingAgent && <Thinking agent={thinkingAgent} />}
         {messages.length > 0 && !busy && (
@@ -723,7 +771,7 @@ function ChapterAtelier({
           <ChipBtn label="📖 Relecture de Margaux" disabled={busy} onClick={toMargaux} bg={C.gold} />
           <ChipBtn label="🪶 Renvoyer à Plume" disabled={busy} onClick={backToPlume} bg={C.blush} />
           <ChipBtn label="✨ Collaboration auto" disabled={busy} onClick={collaborate} bg={C.taupe} fg="white" />
-          <ChipBtn label="📄 PDF" disabled={busy} onClick={() => exportPdf(false)} bg={C.silver} fg="white" />
+          <ChipBtn label="✍️ Préparer le PDF" disabled={busy} onClick={openEditorForExport} bg={C.silver} fg="white" />
         </div>
       )}
 
@@ -782,13 +830,15 @@ function ChapterMenu({
   onClose,
   onSetTitle,
   onStatus,
-  onExport,
+  onPrepare,
+  onExportFull,
 }: {
   chapter: MlbChapter;
   onClose: () => void;
   onSetTitle: (t: string) => void;
   onStatus: (s: MlbChapter["status"]) => void;
-  onExport: (withConversation: boolean) => void;
+  onPrepare: () => void;
+  onExportFull: () => void;
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
   return (
@@ -841,17 +891,17 @@ function ChapterMenu({
 
         <button
           onClick={() => {
-            onExport(false);
             onClose();
+            onPrepare();
           }}
           style={{ background: C.blush, color: C.ink }}
           className="w-full py-3 rounded-xl font-bold active:scale-95 transition"
         >
-          📄 Enregistrer le chapitre en PDF
+          ✍️ Préparer / modifier le texte, puis PDF
         </button>
         <button
           onClick={() => {
-            onExport(true);
+            onExportFull();
             onClose();
           }}
           style={{ background: "white", color: C.taupe, border: `1px solid ${C.silver}55` }}
@@ -862,6 +912,110 @@ function ChapterMenu({
         <button onClick={onClose} style={{ color: C.taupe }} className="w-full py-2 text-sm">
           Fermer
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Éditeur du chapitre : on relit/modifie le texte avant le PDF ──
+function ChapterEditor({
+  chapterNumber,
+  initialTitle,
+  initialText,
+  onClose,
+  onExport,
+  onSaveText,
+}: {
+  chapterNumber: number;
+  initialTitle: string;
+  initialText: string;
+  onClose: () => void;
+  onExport: (text: string, title: string) => void;
+  onSaveText: (text: string, title: string) => void;
+}) {
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const val = () => taRef.current?.value ?? "";
+  const ttl = () => titleRef.current?.value.trim() ?? "";
+
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: C.pearl }}>
+      <header
+        className="flex items-center gap-2 px-3 py-3 safe-top shrink-0"
+        style={{ background: `linear-gradient(180deg, ${C.gold}33, ${C.pearl})`, borderBottom: `1px solid ${C.silver}33` }}
+      >
+        <button onClick={onClose} style={{ color: C.taupe }} className="w-9 h-9 flex items-center justify-center text-xl active:scale-90">
+          ‹
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 style={{ color: C.ink, fontFamily: "Georgia, serif" }} className="font-bold">
+            ✍️ Préparer le chapitre {chapterNumber}
+          </h2>
+          <p style={{ color: C.taupe }} className="text-[11px] italic">
+            Relisez et modifiez librement. Le PDF reprendra exactement ce texte.
+          </p>
+        </div>
+      </header>
+
+      <div className="px-4 pt-3">
+        <label style={{ color: C.taupe }} className="text-xs font-semibold">
+          Titre du chapitre
+        </label>
+        <input
+          ref={titleRef}
+          defaultValue={initialTitle}
+          placeholder="Titre du chapitre"
+          className="w-full mt-1 px-3 py-2.5 rounded-xl outline-none"
+          style={{ background: "white", color: C.ink, border: `1px solid ${C.silver}55` }}
+        />
+      </div>
+
+      <div className="px-4 pt-3 flex-1 flex flex-col min-h-0">
+        <label style={{ color: C.taupe }} className="text-xs font-semibold mb-1">
+          Texte du chapitre
+        </label>
+        <textarea
+          ref={taRef}
+          defaultValue={initialText}
+          placeholder="Le texte de votre chapitre…"
+          className="flex-1 w-full px-4 py-3 rounded-2xl outline-none resize-none leading-relaxed"
+          style={{ background: "white", color: C.ink, border: `1px solid ${C.silver}55`, fontSize: 15 }}
+        />
+      </div>
+
+      <div className="px-4 py-3 safe-bottom flex flex-col gap-2" style={{ background: C.pearl }}>
+        <button
+          onClick={() => {
+            if (taRef.current) taRef.current.value = cleanProse(val());
+          }}
+          style={{ background: "white", color: C.taupe, border: `1px solid ${C.silver}66` }}
+          className="w-full py-2.5 rounded-xl font-semibold active:scale-95 transition"
+        >
+          ✨ Nettoyer automatiquement (retirer les résidus)
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onSaveText(val(), ttl())}
+            style={{ background: C.gold, color: "white" }}
+            className="flex-1 py-3 rounded-xl font-bold active:scale-95 transition"
+          >
+            💾 Enregistrer
+          </button>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await onExport(val(), ttl());
+              setBusy(false);
+            }}
+            style={{ background: C.blush, color: C.ink, opacity: busy ? 0.6 : 1 }}
+            className="flex-1 py-3 rounded-xl font-bold active:scale-95 transition"
+          >
+            {busy ? "⏳…" : "📄 Exporter en PDF"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -929,7 +1083,7 @@ function MessageBubble({ message, onSetFinal }: { message: MlbMessage; onSetFina
             style={{ color: agent.accent }}
             className="text-[11px] font-semibold mt-1 ml-1 active:opacity-60"
           >
-            ✓ Définir comme texte du chapitre
+            ✍️ Utiliser ce texte (mettre au propre)
           </button>
         )}
       </div>
