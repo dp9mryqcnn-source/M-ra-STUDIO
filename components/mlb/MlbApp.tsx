@@ -235,8 +235,19 @@ function HomeView({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto scrollbar-hide safe-top">
+      {/* Lien vers l'autre studio (M-RA / Møra) */}
+      <div className="px-4 pt-2 flex justify-end">
+        <a
+          href="/"
+          className="text-[11px] font-semibold px-3 py-1.5 rounded-full active:scale-95 transition"
+          style={{ background: "#ffffffcc", color: C.taupe, border: `1px solid ${C.silver}66` }}
+        >
+          ↩ Studio M-RA
+        </a>
+      </div>
+
       {/* En-tête */}
-      <header className="px-6 pt-8 pb-5 text-center" style={{ background: `linear-gradient(180deg, ${C.gold}33, transparent)` }}>
+      <header className="px-6 pt-4 pb-5 text-center" style={{ background: `linear-gradient(180deg, ${C.gold}33, transparent)` }}>
         <p style={{ color: C.taupe, letterSpacing: 4 }} className="text-[11px] font-semibold uppercase">
           Studio d'écriture
         </p>
